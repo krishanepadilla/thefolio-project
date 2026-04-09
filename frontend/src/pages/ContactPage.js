@@ -72,6 +72,7 @@ function ContactPage() {
         </form>
       </div>
 
+{/* Travel Resources table — from original contact.html */}
       <div className="container" style={{ marginTop: '20px' }}>
         <h2>Travel Resources</h2>
         <table>
@@ -80,8 +81,32 @@ function ContactPage() {
               <td><a href="https://share.google/pYQxPRUL83I1mjklM" target="_blank" rel="noreferrer">Provincial Government of La Union</a></td>
               <td>Official site for Provincial Government of La Union.</td>
             </tr>
+            <tr>
+              <td><a href="https://share.google/0PSGVSMlD1DFuYsYE" target="_blank" rel="noreferrer">Trip.com</a></td>
+              <td>Tubao Travel Guide</td>
+            </tr>
+            <tr>
+              <td><a href="https://share.google/0IScQAdx9cT7CegmE" target="_blank" rel="noreferrer">Airbnb</a></td>
+              <td>Top-rated vacation rentals in Tubao</td>
+            </tr>
           </tbody>
         </table>
+      </div>
+
+      {/* Embedded Google Map — from original contact.html */}
+      <div className="container" style={{ marginTop: '20px' }}>
+        <h2>My Location: Tubao, La Union</h2>
+        <div className="map-container">
+          <iframe
+            title="Tubao Location"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d30604.43734005118!2d120.39567438312526!3d16.345864147772652!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339199f16806e57b%3A0x7d6c6f600f73854!2sTubao%2C%20La%20Union!5e0!3m2!1sen!2sph!4v1700000000000!5m2!1sen!2sph"
+            width="100%"
+            height="300"
+            allowFullScreen=""
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
       </div>
     </main>
   );

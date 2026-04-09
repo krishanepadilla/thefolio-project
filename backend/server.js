@@ -12,6 +12,9 @@ const adminRoutes =require('./routes/admin.routes');
 const contactRoutes =require('./routes/contact.routes');
 const app=express();
 connectDB(); //ConnecttoMongoDB
+app.get('/', (req, res) => {
+  res.send('API is running...');
+});
 //──Middleware─────────────────────────────────────────────────
 //AllowReact(port3000)tocall this server
 app.use(cors({origin:['http://localhost:3000','thefolio-project-sandy.vercel.app'],

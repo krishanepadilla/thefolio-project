@@ -1,9 +1,8 @@
 // backend/server.js
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const helmet = require('helmet');
+const cors    = require('cors');
+const path    = require('path');
 const connectDB = require('./config/db');
 
 const authRoutes    = require('./routes/auth.routes');
@@ -14,26 +13,10 @@ const contactRoutes = require('./routes/contact.routes');
 
 const app = express();
 
-// ── 1. Middleware Stack ───────────────────────────────────────────────────────
-app.use(helmet());
+// ── 1. Middleware ─────────────────────────────────────────────────────────────
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://thefolio-project-sandy.vercel.app',
-];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (curl, Postman, mobile)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS policy violation'));
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
-}));
+// Allow ALL origins — fixes CORS errors, safe for a portfolio project
+app.use(cors({ origin: '*', credentials: false }));
 
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -66,13 +49,12 @@ const startServer = async () => {
   try {
     await connectDB();
     console.log('Database connected');
-    // Always listen — Render is a persistent Node server, not serverless
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (err) {
     console.error('DB connection error:', err);
-    process.exit(1); // Crash fast so Render shows the real error
+    process.exit(1);
   }
 };
 

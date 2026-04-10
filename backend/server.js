@@ -14,7 +14,16 @@ const contactRoutes = require('./routes/contact.routes');
 const app = express();
 
 // 1. Initialize Database
-connectDB();
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log("Database connected");
+  } catch (err) {
+    console.error("DB connection error:", err);
+  }
+};
+
+startServer();
 
 // 2. Middleware Stack
 app.use(helmet()); // Sets various security headers

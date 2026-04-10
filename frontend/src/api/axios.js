@@ -1,11 +1,9 @@
 // frontend/src/api/axios.js
-// This file was MISSING — it is imported by every single page in the app.
-// Place this at: src/api/axios.js
-
 import axios from 'axios';
 
-// In your frontend code
-const API = axios.create({ baseURL: 'https://thefolio-project-q414.onrender.com' });
+const API = axios.create({
+  baseURL: 'https://thefolio-project-q414.onrender.com',
+});
 
 // Attach JWT token to every request automatically
 API.interceptors.request.use((config) => {
@@ -22,7 +20,6 @@ API.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      // Only redirect if not already on login/register/splash
       const publicPaths = ['/', '/login', '/register'];
       if (!publicPaths.includes(window.location.pathname)) {
         window.location.href = '/login';

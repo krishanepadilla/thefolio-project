@@ -1,42 +1,30 @@
+// backend/server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const helmet = require('helmet'); // Suggested for security
+const helmet = require('helmet');
 const connectDB = require('./config/db');
 
-const authRoutes = require('./routes/auth.routes');
-const postRoutes = require('./routes/post.routes');
+const authRoutes    = require('./routes/auth.routes');
+const postRoutes    = require('./routes/post.routes');
 const commentRoutes = require('./routes/comment.routes');
-const adminRoutes = require('./routes/admin.routes');
+const adminRoutes   = require('./routes/admin.routes');
 const contactRoutes = require('./routes/contact.routes');
 
 const app = express();
 
-// 1. Initialize Database
-const startServer = async () => {
-  try {
-    await connectDB();
-    console.log("Database connected");
-  } catch (err) {
-    console.error("DB connection error:", err);
-  }
-};
-
-startServer();
-
-// 2. Middleware Stack
-app.use(helmet()); // Sets various security headers
+// ── 1. Middleware Stack ───────────────────────────────────────────────────────
+app.use(helmet());
 
 const allowedOrigins = [
   'http://localhost:3000',
   'https://thefolio-project-sandy.vercel.app',
-  'https://thefolio-project-sandy.vercel.app/' // Added the slash version
 ];
 
-const corsOptions = {
+app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (curl, Postman, mobile)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -44,25 +32,24 @@ const corsOptions = {
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200
-};
+  optionsSuccessStatus: 200,
+}));
 
-app.use(cors(corsOptions)); // CORS must come BEFORE routes
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 3. Routes
-app.use('/auth', authRoutes);
-app.use('/posts', postRoutes);
+// ── 2. Routes ─────────────────────────────────────────────────────────────────
+app.use('/auth',     authRoutes);
+app.use('/posts',    postRoutes);
 app.use('/comments', commentRoutes);
-app.use('/admin', adminRoutes);
-app.use('/contact', contactRoutes);
+app.use('/admin',    adminRoutes);
+app.use('/contact',  contactRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-// 4. Global Error Handler (Keep this at the bottom of the stack)
+// ── 3. Global Error Handler ───────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
@@ -72,14 +59,23 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 5. Server Export/Listen
+// ── 4. Connect DB then Start Server ──────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
-// Important for Vercel: Export the app
-module.exports = app; 
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log('Database connected');
+    // Always listen — Render is a persistent Node server, not serverless
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('DB connection error:', err);
+    process.exit(1); // Crash fast so Render shows the real error
+  }
+};
 
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
+startServer();
+
+module.exports = app;

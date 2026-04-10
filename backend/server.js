@@ -14,10 +14,7 @@ const contactRoutes = require('./routes/contact.routes');
 const app = express();
 
 // ── 1. Middleware ─────────────────────────────────────────────────────────────
-
-// Allow ALL origins — fixes CORS errors, safe for a portfolio project
 app.use(cors({ origin: '*', credentials: false }));
-
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -31,6 +28,27 @@ app.use('/contact',  contactRoutes);
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
+
+// ── TEMPORARY: remove this route after seeding ────────────────────────────────
+app.get('/seed-admin', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const exists = await User.findOne({ email: 'admin@thefolio.com' });
+    if (exists) {
+      return res.json({ message: 'Admin already exists', email: 'admin@thefolio.com' });
+    }
+    await User.create({
+      name: 'TheFolioAdmin',
+      email: 'admin@thefolio.com',
+      password: 'Admin@1234',
+      role: 'admin'
+    });
+    res.json({ message: 'Admin created successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// ── END TEMPORARY ─────────────────────────────────────────────────────────────
 
 // ── 3. Global Error Handler ───────────────────────────────────────────────────
 app.use((err, req, res, next) => {

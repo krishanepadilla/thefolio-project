@@ -21,7 +21,8 @@ app.use(helmet()); // Sets various security headers
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://thefolio-project-sandy.vercel.app'
+  'https://thefolio-project-sandy.vercel.app',
+  'https://thefolio-project-sandy.vercel.app/' // Added the slash version
 ];
 
 const corsOptions = {

@@ -1,21 +1,22 @@
-// backend/middleware/upload.js
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Use absolute path to ensure folder is inside the backend directory
+const uploadDir = path.join(__dirname, '..', 'uploads');
+
 // Create uploads/ folder if it does not exist yet
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // Where and how to save uploaded files
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
+  destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     // Create a unique filename: timestamp + random number + original extension
     const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, unique + path.extname(file.originalname));
-    // Example result: 1719123456789-342156789.jpg
   }
 });
 

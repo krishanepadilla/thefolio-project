@@ -1,4 +1,3 @@
-// backend/server.js
 require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
@@ -16,6 +15,9 @@ const app = express();
 // ── 1. Middleware ─────────────────────────────────────────────────────────────
 app.use(cors({ origin: '*', credentials: false }));
 app.use(express.json());
+
+// Serve static files from the 'uploads' folder
+// path.join(__dirname, 'uploads') looks for the folder inside /backend/
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── 2. Routes ─────────────────────────────────────────────────────────────────
@@ -29,38 +31,16 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-// ── TEMPORARY: remove this route after seeding ────────────────────────────────
-app.get('/seed-admin', async (req, res) => {
-  try {
-    const User = require('./models/User');
-    const exists = await User.findOne({ email: 'admin@thefolio.com' });
-    if (exists) {
-      return res.json({ message: 'Admin already exists', email: 'admin@thefolio.com' });
-    }
-    await User.create({
-      name: 'TheFolioAdmin',
-      email: 'admin@thefolio.com',
-      password: 'Admin@1234',
-      role: 'admin'
-    });
-    res.json({ message: 'Admin created successfully!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-// ── END TEMPORARY ─────────────────────────────────────────────────────────────
-
 // ── 3. Global Error Handler ───────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
     success: false,
     message: err.message || 'Internal Server Error',
-    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
 });
 
-// ── 4. Connect DB then Start Server ──────────────────────────────────────────
+// ── 4. Start Server ──────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
@@ -77,5 +57,3 @@ const startServer = async () => {
 };
 
 startServer();
-
-module.exports = app;

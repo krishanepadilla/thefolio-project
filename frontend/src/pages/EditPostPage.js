@@ -4,6 +4,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 
+const BASE_URL = 'https://thefolio-project-q414.onrender.com';
+
 const MAX_FILE_SIZE_MB = 5;
 const ALLOWED_TYPES    = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -155,7 +157,7 @@ const EditPostPage = () => {
             {currentImage && !preview && (
               <div className="image-preview-wrap" style={{ marginBottom: '12px' }}>
                 <img
-                  src={`http://localhost:5000/uploads/${currentImage}`}
+                  src={`${BASE_URL}/uploads/${currentImage}`}
                   alt="Current cover"
                   className="image-preview"
                 />

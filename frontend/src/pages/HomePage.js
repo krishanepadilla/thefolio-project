@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
+const BASE_URL = 'https://thefolio-project-q414.onrender.com';
+
 function HomePage() {
   const { user } = useAuth();
   const [posts, setPosts]     = useState([]);
@@ -123,7 +125,7 @@ function HomePage() {
                 {/* Cover image */}
                 {post.image ? (
                   <img
-                    src={`http://localhost:5000/uploads/${post.image}`}
+                    src={`${BASE_URL}/uploads/${post.image}`}
                     alt={post.title}
                     style={{
                       width: '100%',

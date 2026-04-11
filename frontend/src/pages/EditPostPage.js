@@ -157,7 +157,7 @@ const EditPostPage = () => {
             {currentImage && !preview && (
               <div className="image-preview-wrap" style={{ marginBottom: '12px' }}>
                 <img
-                  src={`${BASE_URL}/uploads/${currentImage}`}
+                  src={currentImage}
                   alt="Current cover"
                   className="image-preview"
                 />

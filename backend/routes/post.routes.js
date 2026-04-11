@@ -32,13 +32,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/posts — Member or Admin: create new post
-// upload.single('image') handles optional image file
-router.post('/', protect, memberOrAdmin, upload.single('image'), async (req, res) => {
+// POST /api/posts — remove upload.single('image') middleware
+router.post('/', protect, memberOrAdmin, async (req, res) => {
   try {
-    const { title, body } = req.body;
-    const image = req.file ? req.file.filename : '';
-    const post = await Post.create({ title, body, image, author: req.user._id });
+    const { title, body, image } = req.body;
+    const post = await Post.create({ title, body, image: image || '', author: req.user._id });
     await post.populate('author', 'name profilePic');
     res.status(201).json(post);
   } catch (err) {
@@ -46,21 +44,19 @@ router.post('/', protect, memberOrAdmin, upload.single('image'), async (req, res
   }
 });
 
-// PUT /api/posts/:id — Edit: only post owner OR admin
-router.put('/:id', protect, memberOrAdmin, upload.single('image'), async (req, res) => {
+// PUT /api/posts/:id — remove upload.single('image') middleware too
+router.put('/:id', protect, memberOrAdmin, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
     const isOwner = post.author.toString() === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Not authorized' });
 
     if (req.body.title) post.title = req.body.title;
-    if (req.body.body) post.body = req.body.body;
-    if (req.file) post.image = req.file.filename;
+    if (req.body.body)  post.body  = req.body.body;
+    if (req.body.image) post.image = req.body.image; // base64 string
 
     await post.save();
     res.json(post);

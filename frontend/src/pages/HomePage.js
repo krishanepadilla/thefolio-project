@@ -125,7 +125,7 @@ function HomePage() {
                 {/* Cover image */}
                 {post.image ? (
                   <img
-                    src={`${BASE_URL}/uploads/${post.image}`}
+                    src={post.image}
                     alt={post.title}
                     style={{
                       width: '100%',

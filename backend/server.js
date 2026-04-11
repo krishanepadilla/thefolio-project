@@ -19,7 +19,8 @@ app.use(express.json());
 // Serve static files from the 'uploads' folder
 // path.join(__dirname, 'uploads') looks for the folder inside /backend/
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 // ── 2. Routes ─────────────────────────────────────────────────────────────────
 app.use('/auth',     authRoutes);
 app.use('/posts',    postRoutes);

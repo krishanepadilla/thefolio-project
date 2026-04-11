@@ -62,6 +62,7 @@ const CreatePostPage = () => {
     setCharCount(e.target.value.length);
   };
 
+// Replace the handleSubmit function
 const handleSubmit = async (e) => {
   e.preventDefault();
   if (!title || !body) {
@@ -70,16 +71,20 @@ const handleSubmit = async (e) => {
   }
 
   setLoading(true);
-  const fd = new FormData();
-  fd.append('title', title);
-  fd.append('body', body);
-  if (image) {
-    fd.append('image', image); // The file object
-  }
 
   try {
-    // Note: Axios automatically sets multipart/form-data headers for FormData
-    await API.post('/posts', fd);
+    // Convert image file to base64 string if one was selected
+    let imageBase64 = '';
+    if (image) {
+      imageBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result); // gives "data:image/jpeg;base64,..."
+        reader.readAsDataURL(image);
+      });
+    }
+
+    // Send as plain JSON instead of FormData
+    await API.post('/posts', { title, body, image: imageBase64 });
     navigate('/home');
   } catch (err) {
     setError(err.response?.data?.message || 'Failed to create post.');
@@ -87,7 +92,6 @@ const handleSubmit = async (e) => {
     setLoading(false);
   }
 };
-
   return (
     <div className="content create-post-page">
       <div className="create-post-header">

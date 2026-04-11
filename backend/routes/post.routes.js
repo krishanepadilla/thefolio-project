@@ -3,7 +3,6 @@ const express = require('express');
 const Post = require('../models/Post');
 const { protect } = require('../middleware/auth.middleware');
 const { memberOrAdmin } = require('../middleware/role.middleware');
-const upload = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -32,11 +31,17 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/posts — remove upload.single('image') middleware
+// POST /api/posts — Member or Admin: create new post
+// ✅ No multer — image arrives as base64 string in req.body.image
 router.post('/', protect, memberOrAdmin, async (req, res) => {
   try {
     const { title, body, image } = req.body;
-    const post = await Post.create({ title, body, image: image || '', author: req.user._id });
+    const post = await Post.create({
+      title,
+      body,
+      image: image || '',
+      author: req.user._id,
+    });
     await post.populate('author', 'name profilePic');
     res.status(201).json(post);
   } catch (err) {
@@ -44,7 +49,8 @@ router.post('/', protect, memberOrAdmin, async (req, res) => {
   }
 });
 
-// PUT /api/posts/:id — remove upload.single('image') middleware too
+// PUT /api/posts/:id — Edit: only post owner OR admin
+// ✅ No multer — image arrives as base64 string in req.body.image
 router.put('/:id', protect, memberOrAdmin, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -52,11 +58,13 @@ router.put('/:id', protect, memberOrAdmin, async (req, res) => {
 
     const isOwner = post.author.toString() === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
-    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Not authorized' });
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
 
     if (req.body.title) post.title = req.body.title;
     if (req.body.body)  post.body  = req.body.body;
-    if (req.body.image) post.image = req.body.image; // base64 string
+    if (req.body.image) post.image = req.body.image;
 
     await post.save();
     res.json(post);

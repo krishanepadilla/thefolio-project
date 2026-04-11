@@ -8,58 +8,58 @@ const MAX_FILE_SIZE_MB = 10;
 const ALLOWED_TYPES    = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 const CreatePostPage = () => {
-  const [title, setTitle]     = useState('');
-  const [body, setBody]       = useState('');
-  const [image, setImage]     = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [dragOver, setDragOver] = useState(false);
+  const [title, setTitle]         = useState('');
+  const [body, setBody]           = useState('');
+  const [image, setImage]         = useState(null);
+  const [preview, setPreview]     = useState(null);
+  const [dragOver, setDragOver]   = useState(false);
   const [fileError, setFileError] = useState('');
-  const [error, setError]     = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
   const [charCount, setCharCount] = useState(0);
 
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef();
 
-// Replace the processFile function with this:
-const processFile = (file) => {
-  setFileError('');
-  if (!file) return;
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    setFileError('Only JPG, PNG, WebP, or GIF images are allowed.');
-    return;
-  }
-  if (file.size > 10 * 1024 * 1024) {
-    setFileError('File must be under 10MB.');
-    return;
-  }
+  const processFile = (file) => {
+    setFileError('');
+    if (!file) return;
 
-  // ✅ Compress image using canvas before storing
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setFileError('Only JPG, PNG, WebP, or GIF images are allowed.');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setFileError(`File must be under ${MAX_FILE_SIZE_MB}MB.`);
+      return;
+    }
 
-      // Resize to max 1200px wide while keeping aspect ratio
-      const MAX_WIDTH = 1200;
-      const scale = Math.min(1, MAX_WIDTH / img.width);
-      canvas.width  = img.width  * scale;
-      canvas.height = img.height * scale;
+    // ✅ Compress image using canvas before storing in MongoDB
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
 
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // Resize to max 1200px wide while keeping aspect ratio
+        const MAX_WIDTH = 1200;
+        const scale = Math.min(1, MAX_WIDTH / img.width);
+        canvas.width  = img.width  * scale;
+        canvas.height = img.height * scale;
 
-      // Compress to JPEG at 80% quality — typically reduces size by 60-80%
-      const compressed = canvas.toDataURL('image/jpeg', 0.8);
-      setImage(file);
-      setPreview(compressed);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Compress to JPEG at 80% quality — reduces size by 60-80%
+        const compressed = canvas.toDataURL('image/jpeg', 0.8);
+        setImage(file);
+        setPreview(compressed);
+      };
+      img.src = reader.result;
     };
-    img.src = reader.result;
+    reader.readAsDataURL(file);
   };
-  reader.readAsDataURL(file);
-};
 
   const handleFileChange = (e) => processFile(e.target.files[0]);
 
@@ -69,7 +69,7 @@ const processFile = (file) => {
     processFile(e.dataTransfer.files[0]);
   }, []);
 
-  const handleDragOver = (e) => { e.preventDefault(); setDragOver(true); };
+  const handleDragOver  = (e) => { e.preventDefault(); setDragOver(true); };
   const handleDragLeave = () => setDragOver(false);
 
   const removeImage = () => {
@@ -84,23 +84,25 @@ const processFile = (file) => {
     setCharCount(e.target.value.length);
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!title || !body) {
-    setError('Title and content are required.');
-    return;
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!title || !body) {
+      setError('Title and content are required.');
+      return;
+    }
 
-  setLoading(true);
-  try {
-    await API.post('/posts', { title, body, image: preview || '' });
-    navigate('/home');
-  } catch (err) {
-    setError(err.response?.data?.message || 'Failed to create post.');
-  } finally {
-    setLoading(false);
-  }
+    setLoading(true);
+    try {
+      // ✅ Use preview (already compressed base64) instead of re-reading raw file
+      await API.post('/posts', { title, body, image: preview || '' });
+      navigate('/home');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create post.');
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
     <div className="content create-post-page">
       <div className="create-post-header">
@@ -144,15 +146,18 @@ const handleSubmit = async (e) => {
             required
             className="form-input form-textarea"
           />
-          <span className="input-hint">{charCount} characters · ~{Math.max(1, Math.ceil(charCount / 1000))} min read</span>
+          <span className="input-hint">
+            {charCount} characters · ~{Math.max(1, Math.ceil(charCount / 1000))} min read
+          </span>
         </div>
 
-        {/* Image upload — members and admins */}
+        {/* Image upload */}
         {user && (
           <div className="form-group">
-            <label className="form-label">Cover Image <span className="form-badge">Optional</span></label>
+            <label className="form-label">
+              Cover Image <span className="form-badge">Optional</span>
+            </label>
 
-            {/* Drop zone */}
             {!preview ? (
               <div
                 className={`drop-zone${dragOver ? ' drag-over' : ''}`}
@@ -163,9 +168,12 @@ const handleSubmit = async (e) => {
               >
                 <div className="drop-zone-icon">🖼️</div>
                 <p className="drop-zone-text">
-                  <strong>Drag & drop</strong> an image here, or <span className="drop-zone-link">click to browse</span>
+                  <strong>Drag & drop</strong> an image here, or{' '}
+                  <span className="drop-zone-link">click to browse</span>
                 </p>
-                <p className="drop-zone-sub">JPG, PNG, WebP, GIF · Max {MAX_FILE_SIZE_MB}MB</p>
+                <p className="drop-zone-sub">
+                  JPG, PNG, WebP, GIF · Max {MAX_FILE_SIZE_MB}MB
+                </p>
                 <input
                   ref={fileInputRef}
                   id="post-image"

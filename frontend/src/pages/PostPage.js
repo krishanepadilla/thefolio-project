@@ -91,7 +91,7 @@ const PostPage = () => {
 
           {/* Edit button */}
           <Link
-            to={`/posts/${id}/edit`}
+            to={`/edit-post/${id}`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

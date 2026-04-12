@@ -112,7 +112,7 @@ const EditPostPage = () => {
         body,
         image: preview || currentImage || '',
       });
-      navigate(`/posts/${id}`);
+      navigate(`/posts/${id}`); // back to the post view after saving
     } catch (err) {
       const status = err.response?.status;
       if (status === 403) {

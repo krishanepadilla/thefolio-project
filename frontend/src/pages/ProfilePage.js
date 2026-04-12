@@ -6,42 +6,37 @@ import API from '../api/axios';
 const ProfilePage = () => {
   const { user, setUser } = useAuth();
 
-  const [name, setName] = useState(user?.name || '');
-  const [bio, setBio]   = useState(user?.bio  || '');
-  const [picPreview, setPicPreview] = useState(null); // base64 preview of new pic
+  const [name, setName]             = useState(user?.name || '');
+  const [bio, setBio]               = useState(user?.bio  || '');
+  const [picPreview, setPicPreview] = useState(null);
 
   const [curPw, setCurPw] = useState('');
   const [newPw, setNewPw] = useState('');
 
-  const [profileMsg, setProfileMsg]     = useState('');
-  const [profileError, setProfileError] = useState('');
-  const [passMsg, setPassMsg]           = useState('');
-  const [passError, setPassError]       = useState('');
+  const [profileMsg, setProfileMsg]         = useState('');
+  const [profileError, setProfileError]     = useState('');
+  const [passMsg, setPassMsg]               = useState('');
+  const [passError, setPassError]           = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
+  const [passLoading, setPassLoading]       = useState(false);
 
-  // ✅ FIX: profilePic is now stored as a base64 string in the DB,
-  // so use it directly instead of constructing a broken localhost URL.
   const picSrc = picPreview || user?.profilePic || null;
 
-  // ✅ FIX: Convert the selected file to a compressed base64 string
-  // instead of appending it to FormData (which the auth route doesn't support).
   const handlePicChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onloadend = () => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 400; // profile pics don't need to be large
+        const MAX_WIDTH = 400;
         const scale = Math.min(1, MAX_WIDTH / img.width);
         canvas.width  = img.width  * scale;
         canvas.height = img.height * scale;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressed = canvas.toDataURL('image/jpeg', 0.85);
-        setPicPreview(compressed);
+        setPicPreview(canvas.toDataURL('image/jpeg', 0.85));
       };
       img.src = reader.result;
     };
@@ -54,14 +49,12 @@ const ProfilePage = () => {
     setProfileError('');
     setProfileLoading(true);
     try {
-      // ✅ FIX: Send JSON with base64 profilePic, not FormData
       const payload = { name, bio };
       if (picPreview) payload.profilePic = picPreview;
-
       const { data } = await API.put('/auth/profile', payload);
       setUser(data);
-      setPicPreview(null); // clear local preview — user object now has updated pic
-      setProfileMsg('✅ Profile updated successfully!');
+      setPicPreview(null);
+      setProfileMsg('Profile updated successfully!');
     } catch (err) {
       setProfileError(err.response?.data?.message || 'Failed to update profile.');
     } finally {
@@ -77,146 +70,184 @@ const ProfilePage = () => {
       setPassError('New password must be at least 8 characters.');
       return;
     }
+    setPassLoading(true);
     try {
-      await API.put('/auth/change-password', {
-        currentPassword: curPw,
-        newPassword: newPw,
-      });
-      setPassMsg('✅ Password changed successfully!');
+      await API.put('/auth/change-password', { currentPassword: curPw, newPassword: newPw });
+      setPassMsg('Password changed successfully!');
       setCurPw('');
       setNewPw('');
     } catch (err) {
       setPassError(err.response?.data?.message || 'Failed to change password.');
+    } finally {
+      setPassLoading(false);
     }
   };
 
-  const msgStyle = (isError) => ({
-    padding: '10px 16px',
-    borderRadius: '8px',
-    marginBottom: '12px',
-    fontWeight: '600',
-    background: isError ? 'rgba(220, 53, 69, 0.12)' : 'rgba(71, 85, 34, 0.12)',
-    border: `1px solid ${isError ? '#b43c3c' : '#475522'}`,
-    color: isError ? '#b43c3c' : '#475522',
-  });
+  const roleColor = {
+    admin:  { bg: 'rgba(220,38,38,0.10)',  color: 'var(--danger)', label: 'Admin'  },
+    member: { bg: 'rgba(29,78,216,0.10)',  color: 'var(--olive)',  label: 'Member' },
+  };
+  const badge = roleColor[user?.role] || roleColor.member;
 
   return (
-    <div className="content">
-      <h2>My Profile</h2>
+    <div className="content" style={{ maxWidth: '680px' }}>
 
-      {/* Profile picture preview */}
-      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+      {/* Hero card */}
+      <div style={{
+        background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)',
+        padding: '36px 28px 28px', textAlign: 'center',
+        marginBottom: '24px', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '4px',
+          background: 'linear-gradient(90deg, var(--olive), var(--olive-light))',
+        }} />
+
         {picSrc ? (
-          <img
-            src={picSrc}
-            alt="Profile"
-            style={{
-              width: '100px', height: '100px',
-              borderRadius: '50%', objectFit: 'cover',
-              border: '3px solid #223555',
-            }}
-          />
+          <img src={picSrc} alt="Profile" style={{
+            width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover',
+            border: '3px solid var(--olive)', boxShadow: 'var(--shadow-md)',
+            margin: '0 auto 16px',
+          }} />
         ) : (
           <div style={{
-            width: '100px', height: '100px',
-            borderRadius: '50%', background: '#224d55',
-            color: '#E2DCD6', fontSize: '2.5rem',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            border: '3px solid #2D221A',
+            width: '96px', height: '96px', borderRadius: '50%',
+            background: 'linear-gradient(135deg, var(--olive), var(--olive-light))',
+            color: '#fff', fontSize: '2.4rem', fontFamily: "'Playfair Display', serif",
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '3px solid var(--olive)', boxShadow: 'var(--shadow-md)',
+            margin: '0 auto 16px',
           }}>
             {user?.name?.charAt(0).toUpperCase()}
           </div>
         )}
-        <p style={{ marginTop: '8px', color: '#8C7E72', fontSize: '0.9rem' }}>
-          {user?.email} · <span style={{ textTransform: 'capitalize' }}>{user?.role}</span>
-        </p>
+
+        <h2 style={{ marginBottom: '4px' }}>{user?.name}</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '12px' }}>{user?.email}</p>
+
+        {user?.bio && (
+          <p style={{
+            color: 'var(--text-body)', fontSize: '0.92rem',
+            maxWidth: '420px', margin: '0 auto 14px', lineHeight: '1.6',
+          }}>{user.bio}</p>
+        )}
+
+        <span style={{
+          display: 'inline-block', padding: '3px 14px', borderRadius: '999px',
+          background: badge.bg, color: badge.color, fontSize: '0.78rem',
+          fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase',
+          border: `1px solid ${badge.color}`,
+        }}>{badge.label}</span>
       </div>
 
-      {/* ── Edit Profile Form ── */}
-      <section style={{ marginBottom: '40px' }}>
-        <h3>Edit Profile</h3>
-        {profileMsg   && <p style={msgStyle(false)}>{profileMsg}</p>}
-        {profileError && <p style={msgStyle(true)}>{profileError}</p>}
-        <form onSubmit={handleProfile}>
-          <label htmlFor="p-name">Display Name:</label>
-          <input
-            id="p-name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="Your display name"
-          />
+      {/* Edit Profile */}
+      <div style={{
+        background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)',
+        padding: '28px', marginBottom: '20px',
+      }}>
+        <h3 style={{ marginBottom: '20px' }}>✏️ Edit Profile</h3>
 
-          <label htmlFor="p-bio">Short Bio:</label>
-          <textarea
-            id="p-bio"
-            rows="3"
-            value={bio}
-            onChange={e => setBio(e.target.value)}
-            placeholder="Tell us about yourself..."
-          />
+        {profileMsg && (
+          <div style={{ padding: '10px 16px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', background: 'var(--success-pale)', border: '1px solid var(--success)', color: 'var(--success)', fontWeight: '600', fontSize: '0.9rem' }}>
+            ✅ {profileMsg}
+          </div>
+        )}
+        {profileError && (
+          <div style={{ padding: '10px 16px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', background: 'var(--danger-pale)', border: '1px solid var(--danger)', color: 'var(--danger)', fontWeight: '600', fontSize: '0.9rem' }}>
+            ⚠️ {profileError}
+          </div>
+        )}
 
-          <label htmlFor="p-pic">Change Profile Picture:</label>
-          <input
-            id="p-pic"
-            type="file"
-            accept="image/*"
-            onChange={handlePicChange}
-          />
-          {/* Show a small preview of the newly selected pic before saving */}
-          {picPreview && (
-            <div style={{ marginTop: '8px' }}>
-              <img
-                src={picPreview}
-                alt="New profile preview"
-                style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover' }}
-              />
-              <span style={{ marginLeft: '10px', fontSize: '0.82rem', color: '#8C7E72' }}>
-                New picture preview
+        <form onSubmit={handleProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="form-group">
+            <label htmlFor="p-name" className="form-label">Display Name</label>
+            <input id="p-name" className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="Your display name" />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="p-bio" className="form-label">Short Bio</label>
+            <textarea id="p-bio" className="form-input form-textarea" rows="3" value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell us about yourself..." />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Profile Picture</label>
+            <label htmlFor="p-pic" style={{
+              display: 'flex', alignItems: 'center', gap: '14px',
+              padding: '14px 16px', border: '2px dashed var(--border-light)',
+              borderRadius: 'var(--radius-md)', background: 'var(--cream-light)',
+              cursor: 'pointer', transition: 'var(--transition)',
+            }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--olive)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-light)'}
+            >
+              {picPreview ? (
+                <img src={picPreview} alt="Preview" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', flexShrink: 0 }}>📷</div>
+              )}
+              <div>
+                <p style={{ color: 'var(--text-main)', fontWeight: '600', fontSize: '0.9rem', margin: 0 }}>
+                  {picPreview ? 'New picture selected — click to change' : 'Click to upload a photo'}
+                </p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>JPG, PNG, WebP · Recommended 400×400px</p>
+              </div>
+              <input id="p-pic" type="file" accept="image/*" onChange={handlePicChange} style={{ display: 'none' }} />
+            </label>
+          </div>
+
+          <div>
+            <button type="submit" disabled={profileLoading} className="btn-publish" style={{ minWidth: '150px' }}>
+              {profileLoading ? <><span className="btn-spinner" /> Saving…</> : '💾 Save Profile'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Change Password */}
+      <div style={{
+        background: 'var(--card-bg)', border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)',
+        padding: '28px',
+      }}>
+        <h3 style={{ marginBottom: '20px' }}>🔒 Change Password</h3>
+
+        {passMsg && (
+          <div style={{ padding: '10px 16px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', background: 'var(--success-pale)', border: '1px solid var(--success)', color: 'var(--success)', fontWeight: '600', fontSize: '0.9rem' }}>
+            ✅ {passMsg}
+          </div>
+        )}
+        {passError && (
+          <div style={{ padding: '10px 16px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', background: 'var(--danger-pale)', border: '1px solid var(--danger)', color: 'var(--danger)', fontWeight: '600', fontSize: '0.9rem' }}>
+            ⚠️ {passError}
+          </div>
+        )}
+
+        <form onSubmit={handlePassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="form-group">
+            <label htmlFor="cur-pw" className="form-label">Current Password</label>
+            <input id="cur-pw" type="password" className="form-input" placeholder="Enter your current password" value={curPw} onChange={e => setCurPw(e.target.value)} required />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="new-pw" className="form-label">New Password</label>
+            <input id="new-pw" type="password" className="form-input" placeholder="At least 8 characters" value={newPw} onChange={e => setNewPw(e.target.value)} required minLength={8} />
+            {newPw.length > 0 && (
+              <span className="input-hint" style={{ color: newPw.length >= 8 ? 'var(--success)' : 'var(--danger)' }}>
+                {newPw.length >= 8 ? '✓ Strong enough' : `${8 - newPw.length} more character${8 - newPw.length > 1 ? 's' : ''} needed`}
               </span>
-            </div>
-          )}
+            )}
+          </div>
 
-          <input
-            type="submit"
-            id="newcolor"
-            value={profileLoading ? 'Saving…' : 'Save Profile'}
-            disabled={profileLoading}
-          />
+          <div>
+            <button type="submit" disabled={passLoading} className="btn-publish" style={{ minWidth: '180px' }}>
+              {passLoading ? <><span className="btn-spinner" /> Updating…</> : '🔑 Update Password'}
+            </button>
+          </div>
         </form>
-      </section>
+      </div>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #d2b48c', marginBottom: '32px' }} />
-
-      {/* ── Change Password Form ── */}
-      <section>
-        <h3>Change Password</h3>
-        {passMsg   && <p style={msgStyle(false)}>{passMsg}</p>}
-        {passError && <p style={msgStyle(true)}>{passError}</p>}
-        <form onSubmit={handlePassword}>
-          <label htmlFor="cur-pw">Current Password:</label>
-          <input
-            id="cur-pw"
-            type="password"
-            placeholder="Enter current password"
-            value={curPw}
-            onChange={e => setCurPw(e.target.value)}
-            required
-          />
-
-          <label htmlFor="new-pw">New Password (min 8 characters):</label>
-          <input
-            id="new-pw"
-            type="password"
-            placeholder="Enter new password"
-            value={newPw}
-            onChange={e => setNewPw(e.target.value)}
-            required
-            minLength={8}
-          />
-
-          <input type="submit" id="newcolor" value="Change Password" />
-        </form>
-      </section>
     </div>
   );
 };

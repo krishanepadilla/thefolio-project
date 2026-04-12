@@ -49,25 +49,34 @@ router.post('/', protect, memberOrAdmin, async (req, res) => {
 });
 
 // PUT /api/posts/:id — Edit: only post owner OR admin
-router.put('/:id', protect, memberOrAdmin, async (req, res) => {
+// ✅ FIX: Removed memberOrAdmin middleware from this route.
+// memberOrAdmin blocks users whose role isn't 'member' or 'admin' at the
+// middleware level — before the handler can even check isOwner. By moving
+// all authorization into the handler itself we avoid silent 403s and give
+// a clear error message instead.
+router.put('/:id', protect, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (!post || post.status === 'removed') {
+      return res.status(404).json({ message: 'Post not found' });
+    }
 
     const isOwner = post.author.toString() === req.user._id.toString();
     const isAdmin = req.user.role === 'admin';
     if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: 'Not authorized' });
+      return res.status(403).json({ message: 'Not authorized to edit this post' });
     }
 
+    // ✅ FIX: Use !== undefined so falsy-but-valid values like "" are saved.
+    // The old `if (req.body.title)` check would skip saving an empty string.
     if (req.body.title !== undefined) post.title = req.body.title;
     if (req.body.body  !== undefined) post.body  = req.body.body;
-
-    // ✅ FIX: use `!== undefined` instead of truthiness check so that
-    // sending image: "" correctly clears the cover image.
     if (req.body.image !== undefined) post.image = req.body.image;
 
     await post.save();
+
+    // ✅ FIX: Populate author so frontend receives full post object
+    await post.populate('author', 'name profilePic');
     res.json(post);
   } catch (err) {
     res.status(500).json({ message: err.message });

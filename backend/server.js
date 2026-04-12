@@ -14,13 +14,16 @@ const app = express();
 
 // ── 1. Middleware ─────────────────────────────────────────────────────────────
 app.use(cors({ origin: '*', credentials: false }));
-app.use(express.json());
 
-// Serve static files from the 'uploads' folder
-// path.join(__dirname, 'uploads') looks for the folder inside /backend/
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ✅ FIX: Only declare express.json() ONCE with the 20mb limit.
+// Previously there were two calls — the default 100kb one ran first
+// and rejected base64 image payloads before the 20mb one could apply.
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+
+// Serve static files from the 'uploads' folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // ── 2. Routes ─────────────────────────────────────────────────────────────────
 app.use('/auth',     authRoutes);
 app.use('/posts',    postRoutes);

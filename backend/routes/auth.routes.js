@@ -79,18 +79,18 @@ router.get('/me', protect, async (req, res) => {
 
 // ── PUT /api/auth/profile ─────────────────────────────────────
 // Update name, bio, or upload a new profile picture
-router.put('/profile', protect, upload.single('profilePic'), async (req, res) => {
+router.put('/profile', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-
-    if (req.body.name) user.name = req.body.name;
-    if (req.body.bio) user.bio = req.body.bio;
-    if (req.file) user.profilePic = req.file.filename;
-
+    if (!user) return res.status(404).json({ message: 'User not found' });
+ 
+    // ✅ Accept name, bio, and base64 profilePic from JSON body
+    if (req.body.name       !== undefined) user.name       = req.body.name;
+    if (req.body.bio        !== undefined) user.bio        = req.body.bio;
+    if (req.body.profilePic !== undefined) user.profilePic = req.body.profilePic;
+ 
     await user.save();
-
-    const updated = await User.findById(user._id).select('-password');
-    res.json(updated);
+    res.json(user); // return updated user so AuthContext can update setUser()
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

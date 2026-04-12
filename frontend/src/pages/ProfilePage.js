@@ -8,7 +8,7 @@ const ProfilePage = () => {
 
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio]   = useState(user?.bio  || '');
-  const [pic, setPic]   = useState(null);
+  const [picPreview, setPicPreview] = useState(null); // base64 preview of new pic
 
   const [curPw, setCurPw] = useState('');
   const [newPw, setNewPw] = useState('');
@@ -17,25 +17,55 @@ const ProfilePage = () => {
   const [profileError, setProfileError] = useState('');
   const [passMsg, setPassMsg]           = useState('');
   const [passError, setPassError]       = useState('');
+  const [profileLoading, setProfileLoading] = useState(false);
 
-  const picSrc = user?.profilePic
-    ? `http://localhost:5000/uploads/${user.profilePic}`
-    : null;
+  // ✅ FIX: profilePic is now stored as a base64 string in the DB,
+  // so use it directly instead of constructing a broken localhost URL.
+  const picSrc = picPreview || user?.profilePic || null;
+
+  // ✅ FIX: Convert the selected file to a compressed base64 string
+  // instead of appending it to FormData (which the auth route doesn't support).
+  const handlePicChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 400; // profile pics don't need to be large
+        const scale = Math.min(1, MAX_WIDTH / img.width);
+        canvas.width  = img.width  * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressed = canvas.toDataURL('image/jpeg', 0.85);
+        setPicPreview(compressed);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleProfile = async (e) => {
     e.preventDefault();
     setProfileMsg('');
     setProfileError('');
-    const fd = new FormData();
-    fd.append('name', name);
-    fd.append('bio', bio);
-    if (pic) fd.append('profilePic', pic);
+    setProfileLoading(true);
     try {
-      const { data } = await API.put('/auth/profile', fd);
+      // ✅ FIX: Send JSON with base64 profilePic, not FormData
+      const payload = { name, bio };
+      if (picPreview) payload.profilePic = picPreview;
+
+      const { data } = await API.put('/auth/profile', payload);
       setUser(data);
+      setPicPreview(null); // clear local preview — user object now has updated pic
       setProfileMsg('✅ Profile updated successfully!');
     } catch (err) {
       setProfileError(err.response?.data?.message || 'Failed to update profile.');
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -43,7 +73,6 @@ const ProfilePage = () => {
     e.preventDefault();
     setPassMsg('');
     setPassError('');
-    // FIX: validate min 8 chars on frontend to match the backend rule
     if (newPw.length < 8) {
       setPassError('New password must be at least 8 characters.');
       return;
@@ -131,10 +160,28 @@ const ProfilePage = () => {
             id="p-pic"
             type="file"
             accept="image/*"
-            onChange={e => setPic(e.target.files[0])}
+            onChange={handlePicChange}
           />
+          {/* Show a small preview of the newly selected pic before saving */}
+          {picPreview && (
+            <div style={{ marginTop: '8px' }}>
+              <img
+                src={picPreview}
+                alt="New profile preview"
+                style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover' }}
+              />
+              <span style={{ marginLeft: '10px', fontSize: '0.82rem', color: '#8C7E72' }}>
+                New picture preview
+              </span>
+            </div>
+          )}
 
-          <input type="submit" id="newcolor" value="Save Profile" />
+          <input
+            type="submit"
+            id="newcolor"
+            value={profileLoading ? 'Saving…' : 'Save Profile'}
+            disabled={profileLoading}
+          />
         </form>
       </section>
 
@@ -156,7 +203,6 @@ const ProfilePage = () => {
             required
           />
 
-          {/* FIX: label and minLength now correctly say 8 (was 6) */}
           <label htmlFor="new-pw">New Password (min 8 characters):</label>
           <input
             id="new-pw"

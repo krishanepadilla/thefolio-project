@@ -32,7 +32,6 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/posts — Member or Admin: create new post
-// ✅ No multer — image arrives as base64 string in req.body.image
 router.post('/', protect, memberOrAdmin, async (req, res) => {
   try {
     const { title, body, image } = req.body;
@@ -50,7 +49,6 @@ router.post('/', protect, memberOrAdmin, async (req, res) => {
 });
 
 // PUT /api/posts/:id — Edit: only post owner OR admin
-// ✅ No multer — image arrives as base64 string in req.body.image
 router.put('/:id', protect, memberOrAdmin, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -62,9 +60,12 @@ router.put('/:id', protect, memberOrAdmin, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    if (req.body.title) post.title = req.body.title;
-    if (req.body.body)  post.body  = req.body.body;
-    if (req.body.image) post.image = req.body.image;
+    if (req.body.title !== undefined) post.title = req.body.title;
+    if (req.body.body  !== undefined) post.body  = req.body.body;
+
+    // ✅ FIX: use `!== undefined` instead of truthiness check so that
+    // sending image: "" correctly clears the cover image.
+    if (req.body.image !== undefined) post.image = req.body.image;
 
     await post.save();
     res.json(post);

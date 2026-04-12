@@ -17,8 +17,6 @@ import AdminPage      from './pages/AdminPage';
 
 import './App.css';
 
-// ⚠️  BrowserRouter + AuthProvider live in src/index.js
-
 function App() {
   return (
     <Routes>
